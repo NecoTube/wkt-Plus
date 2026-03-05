@@ -81,16 +81,32 @@
 
 ---
 
-## クレジット
+## 👥 クレジット
 
-- わかめtubeの原作者 [@wakame02](https://github.com/wakame02)
-- この改造版わかめtubeの作者、Educationのパラメーターの提供 [@toka-kun](https://github.com/toka-kun)
-- Educationのパラメーター、トレンド情報提供 [@siawaseok3](https://github.com/siawaseok3)
-- VercelとCodeSandboxでのデプロイに対応 [@banana-coco](https://github.com/banana-coco)
-- Educationのパラメーターの提供 [@woolisbest-4520](https://github.com/woolisbest-4520)
+このプロジェクトは、多くの方々の貢献とコードによって成り立っています。
+
+- **わかめtube (wkt) 原作者**
+  - [@wakame02](https://github.com/wakame02)
+- **わかめtube Plus (wkt Plus) 開発・Educationパラメーター提供**
+  - [@toka-kun](https://github.com/toka-kun)
+- **Educationパラメーター・トレンド情報提供**
+  - [@siawaseok3](https://github.com/siawaseok3)
+- **Vercel / CodeSandbox デプロイ対応**
+  - [@banana-coco](https://github.com/banana-coco)
+- **Educationパラメーター提供**
+  - [@woolisbest-4520](https://github.com/woolisbest-4520)
 
 ---
 
 ## 📄 ライセンス
 
-このプロジェクトは **CC-BY-4.0** ライセンスのもとで公開されています。再配布・改変などなどOK！
+本プロジェクトは、元の作品のライセンスを尊重しつつ、独自の改善を加えた混在ライセンスとなっています。
+
+- **元のプログラム部分（わかめtube）**
+  - [Creative Commons Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/deed.ja)
+  - Copyright (c) wakame02
+- **追加・改変されたプログラム部分（wkt Plus）**
+  - [MIT License](https://opensource.org/licenses/MIT)
+  - Copyright (c) 2026 toka-kun
+
+詳細はリポジトリ内の `LICENSE` ファイルをご確認ください。
