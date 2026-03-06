@@ -20,7 +20,7 @@ router.get('/:id', async (req, res) => {
     }
 
     // クエリからAPIの種類を取得。なければデフォルトで'invidious'
-    const selectedApi = req.query.api || 'invidious';
+    const selectedApi = req.query.server || 'invidious';
     let baseUrl = selectedApi; 
 
     try {
