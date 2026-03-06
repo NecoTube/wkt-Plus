@@ -65,25 +65,25 @@ async function getInvidious(videoId) {
 }
 
 // =========================================
-// ② SiaTube API からの取得
+// ③ YuZuTube API からの取得
 // =========================================
-async function getSiaTube(videoId) {
+async function getYuZuTube(videoId) {
     try {
-        const response = await axios.get(`https://siawaseok.f5.si/api/streams/${videoId}`, { timeout: MAX_TIME });
+        const response = await axios.get(`https://yudlp.vercel.app/stream/${videoId}`, { timeout: MAX_TIME });
         const streams = Array.isArray(response.data) ? response.data : (response.data.formats || []);
         
-        // 【修正】音声: format_id(itag) が 251 のものを最優先
+        // 【修正】音声: itag 251、または resolution が 'audio only' のものを音声として取得
         const audioStream = streams.find(s => String(s.format_id) === '251' || String(s.itag) === '251') || 
-                            streams.find(s => s.vcodec === 'none' && s.acodec === 'opus') || 
-                            streams.find(s => s.vcodec === 'none');
+                            streams.find(s => s.resolution === 'audio only');
         const audioUrl = audioStream?.url || '';
 
         // 【修正】初期ストリーム: format_id(itag) が 18 の360p統合ファイルを最優先
-        const combinedStream = streams.find(s => String(s.format_id) === '18' || String(s.itag) === '18') || 
-                               streams.find(s => s.vcodec !== 'none' && s.acodec !== 'none');
+        const combinedStream = streams.find(s => String(s.format_id) === '18' || String(s.itag) === '18');
         const streamUrl = combinedStream?.url || '';
 
-        const videoStreams = streams.filter(s => s.vcodec !== 'none' && s.url);
+        // 【修正】動画ストリーム: resolution が 'audio only' のものを完全に除外
+        const videoStreams = streams.filter(s => s.resolution !== 'audio only' && s.url);
+        
         const streamUrls = videoStreams.map(s => {
             let res = s.resolution || '';
             if (res.includes('x')) res = res.split('x')[1] + 'p';
@@ -91,7 +91,7 @@ async function getSiaTube(videoId) {
                 url: s.url,
                 resolution: res,
                 container: s.ext || 'mp4',
-                fps: s.fps || null // 【修正】fpsがない場合はnull
+                fps: s.fps || null // fpsがない場合はnull
             };
         });
 
@@ -102,7 +102,7 @@ async function getSiaTube(videoId) {
             streamUrls: streamUrls
         };
     } catch (error) {
-        throw new Error("SiaTubeからの取得に失敗: " + error.message);
+        throw new Error("YuZuTubeからの取得に失敗: " + error.message);
     }
 }
 
