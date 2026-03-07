@@ -110,9 +110,9 @@ pinned: false
           - Secret: さっきコピーしたHugging Faceのトークンを貼り付け
       - すでに `.github/workflows/sync-hfs.yml.bak` というファイルがあるので、ファイル名を `.github/workflows/sync-hfs.yml` に変更し、コード内の `YOUR_HF_USERNAME` と `YOUR_SPACE_NAME` を自分のものに書き換えて下さい
       - ⚠️ 最後の行の書き換え必須ポイント ⚠️
-        - YOUR_HF_USERNAME → あなたのHugging Faceのユーザー名（2箇所あります）
-        - YOUR_SPACE_NAME → 先ほど作ったSpaceの名前（例: wkt-plus）
-        - master:main → GitHub側が master ブランチで、HFS側が main ブランチの場合の書き方です。（両方 main なら main:main でOKです）
+        - `YOUR_HF_USERNAME` → あなたのHugging Faceのユーザー名（2箇所あります）
+        - `YOUR_SPACE_NAME` → 先ほど作ったSpaceの名前（例: wkt-plus）
+        - `master:main` → GitHub側が master ブランチで、HFS側が main ブランチの場合の書き方です。（両方 main なら `main:main` でOKです）
  
 9. ファイルを保存すると、画面上部の表示が自動的に 「Building」 に変わるので、そのまま数分待ちます。
 10. ステータスが緑色の 「Running」 に変われば完了です☑️
