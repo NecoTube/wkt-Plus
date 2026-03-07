@@ -9,7 +9,7 @@ pinned: false
 
 # わかめtube Plusへようこそ！
 
-もう開発が終了したわかめtubeに @toka-kun が改良を加えているものです。大幅に強化しています。
+もう開発が終了したわかめtubeに [@toka-kun](https://github.com/toka-kun) が改良を加えているものです。大幅に強化しています。
 
 ## 特徴
 
