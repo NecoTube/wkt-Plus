@@ -37,6 +37,7 @@ pinned: false
 3. [Railway](https://railway.com/dashboard)
 4. [Koyeb](#-koyebでのデプロイ手順)
 5. [CodeSandbox](#-codesandboxでのデプロイ手順)
+6. [Hugging Face Spaces] （YouTubei.jsが使えないので中身のないただの箱になります。）
 
 ---
 
@@ -70,6 +71,51 @@ pinned: false
 5. 右に出てきた画面から「Next」を押し続ける。途中「Protect main branch」ってのが出てくるけどそこは念の為オンにして下さい
 6. そのまま「Apply」まで押す
 7. 右下にOpen Previewって出てくると完了です。Open Previewを押すとリンクが分かります☑️
+
+---
+
+### 🛠 Hugging Face Spacesでのデプロイ手順
+
+1. [Huggind Face](https://huggingface.co/) にログインまたは新規登録
+2. 「New Space」を選択
+3. Space SDKは「Docker」を選択
+4. Docker Templateは「Blank」を選択
+5. Space Hardwareは「Free（CPU basic · 2 vCPU · 16GB）」を選択
+7. Visibilityは「Public（公開）」か「Private（自分だけ）」を選択
+8. 一番下の 「Create Space」 ボタンを押す
+9. このあとはファイルをアップロード。下の2つからお好みの方法を選んで下さい。
+
+- ファイルを直接アップロード
+  1. ブラウザから直接アップロードするのが一番手っ取り早いです。
+  2. 画面上部にある [Files] タブをクリックします。
+  3. 右上の 「+ Add file」 を押し、「Upload files」 を選択します。
+  4. コード一式（Dockerfile, package.json, server.js, その他のフォルダ等） をまとめてドラッグ＆ドロップします。
+  5. 画面下部にある 「Commit changes to main」 ボタンを押して保存
+ 
+- GitHubと連携
+  1. まずは、GitHubがHFSにコードを書き込めるようにするためのパスワード（トークン）を発行
+    - Hugging Faceにログインし、右上のプロフィールアイコンから [Settings] を開く。
+    - 左メニューの [Access Tokens] → [Create new token] を開く
+    - 設定を以下のようにして下さい：
+      - Token Type: Write
+      - Name: GITHUB_SYNC など適当な名前
+    - 作成されたトークン（hf_... で始まる長い文字列）をコピー。※この画面を閉じると二度と見られないので注意！
+  2. GitHubに合鍵を登録する
+    - コピーしたトークンをGitHub側に入力
+      - レポジトリの上部タブの [Settings] を開く
+      - 左メニューの [Security] の中にある [Secrets and variables] -> [Actions] をクリック
+      - 緑色の [New repository secret] ボタンを押します。
+      - 以下のように入力して [Add secret] を押します：
+        - Name: HF_TOKEN
+        - Secret: さっきコピーしたHugging Faceのトークンを貼り付け
+    - すでに `.github/workflows/sync-hfs.yml.bak` というファイルがあるので、ファイル名を `.github/workflows/sync-hfs.yml` に変更し、コード内の YOUR_HF_USERNAME と YOUR_SPACE_NAME を自分のものに書き換えて下さい
+    - ⚠️ 最後の行の書き換え必須ポイント ⚠️
+      - YOUR_HF_USERNAME → あなたのHugging Faceのユーザー名（2箇所あります）
+      - YOUR_SPACE_NAME → 先ほど作ったSpaceの名前（例: wkt-plus）
+      - master:main → GitHub側が master ブランチで、HFS側が main ブランチの場合の書き方です。（両方 main なら main:main でOKです）
+ 
+9. ファイルを保存すると、画面上部の表示が自動的に 「Building」 に変わるので、そのまま数分待ちます。
+10. ステータスが緑色の 「Running」 に変われば完了です☑️
 
 ---
 
