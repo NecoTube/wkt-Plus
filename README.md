@@ -7,7 +7,19 @@ sdk: docker
 pinned: false
 ---
 
-## 🚀 まずはRemix
+# わかめtube Plusへようこそ！
+
+もう開発が終了したわかめtubeに @toka-kun が改良を加えているものです。大幅に強化しています。
+
+## 特徴
+
+- 動画再生の安定化
+  - Education
+  - ストリーミング再生
+- トレンド情報をまた閲覧できるように改善
+- その他エラー改善
+
+## 🚀 クイックスタート
 
 1. このリポジトリを GitHub で開く
 2. 右上の **[Fork]** ボタンをクリック
@@ -74,15 +86,14 @@ pinned: false
 - 2026/03/01 - 動画を投稿していないチャンネルのページを開けない問題を改善
 - 2026/03/02 - InnerTubeのエラー関連（特にVercel）を改善
 - 2026/03/06 - これまでは360pでしか視聴できなかった動画も高画質で視聴できるようにInvidiousからWebMだけではなくMP4も取得するように変更
+- 2026/03/07 - Invidious APIに加え、SiaTube API、YuZuTube API、XeroxYT-NT API、MIN-Tube2 APIを追加
 
 ---
 
 ## ToDo
 
-2026年3月に一気にやります。それまでお待ち下さい。
 - プロキシを復活
 - できたらもう一度HFSに挑戦
-- SiaTube APIを追加（XeroxYT-NT API、YuZuTube APIも追加する可能性あり）  
 - 関連動画を表示
 - UXを改善（特にヘルプページ）
 - Educationのパラメーターを選択制に
@@ -92,18 +103,27 @@ pinned: false
 
 ## 👥 クレジット
 
-このプロジェクトは、多くの方々の貢献とコードによって成り立っています。
+このプロジェクトは、多くの方々のコードによって成り立っています。
 
-- **わかめtube 原作者**
-  - [@wakame02](https://github.com/wakame02)
-- **わかめtube Plus 開発・Educationパラメーター提供**
-  - [@toka-kun](https://github.com/toka-kun)
-- **Educationパラメーター・トレンド情報提供**
-  - [@siawaseok3](https://github.com/siawaseok3)
-- **Vercel / CodeSandbox デプロイ対応**
-  - [@banana-coco](https://github.com/banana-coco)
-- **Educationパラメーター提供**
-  - [@woolisbest-4520](https://github.com/woolisbest-4520)
+- [@wakame02](https://github.com/wakame02)
+  - わかめtube 開発
+- [@toka-kun](https://github.com/toka-kun) 
+  - わかめtube Plus 開発
+  - Educationパラメーター
+- [@siawaseok3](https://github.com/siawaseok3)
+  - Educationパラメーター
+  - トレンド情報
+  - SiaTube API
+- [@yuzubb](https://github.com/yuzubb)
+  - YuZuTube API
+- [@Xerox-Pro](https://github.com/Xerox-Pro)
+  - XeroxYT-NT API 
+- [@mino-hobby-pro](https://github.com/mino-hobby-pro)
+  - MIN-Tube2 API
+- [@banana-coco](https://github.com/banana-coco)
+  - Vercel & CodeSandbox デプロイ対応
+- [@woolisbest-4520](https://github.com/woolisbest-4520)
+  - Educationパラメーター
 
 ---
 
