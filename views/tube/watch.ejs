@@ -20,6 +20,20 @@
                 document.getElementById("expandSidebar").classList.add("visible");
                 document.getElementById("related-sidenone").classList.add("hidden");
             }
+
+            // ▼▼▼ 追加: URLがマニフェストURLの場合、動画をミュートにする ▼▼▼
+            const streamUrl = "<%= videoData.stream_url || '' %>";
+            if (streamUrl.startsWith("https://manifest.googlevideo.com/")) {
+                // videoタグが画面に生成されるのを監視して確実にミュートする
+                const muteInterval = setInterval(() => {
+                    const videoEl = document.querySelector("video");
+                    if (videoEl) {
+                        videoEl.muted = true; // ミュート（消音）にする
+                        clearInterval(muteInterval); // 見つけたら監視を終了
+                    }
+                }, 100);
+            }
+            // ▲▲▲ ここまで ▲▲▲
         });
     </script>
     <style>
