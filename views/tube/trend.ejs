@@ -121,10 +121,8 @@
               renderVideos(base64Data.music, musicContainer, "base64");
           }
       } else if (siaData && siaData.trending && siaData.trending.length > 0) {
-          // base64が取得できなかった場合の代替
           sourceTrend = "sia";
           trendingList = siaData.trending;
-          // ※この場合ゲームと音楽のタブは hidden のままになる
       }
       
       // 急上昇を描画
@@ -149,12 +147,10 @@
       function switchTab(selectedBtn) {
           tabs.forEach(tab => {
               if (tab.btn === selectedBtn) {
-                  // アクティブ化
                   tab.btn.classList.add("text-white", "border-b-2", tab.activeColor);
                   tab.btn.classList.remove("text-gray-400");
                   tab.container.classList.remove("hidden");
               } else {
-                  // 非アクティブ化
                   tab.btn.classList.remove("text-white", "border-b-2", tab.activeColor);
                   tab.btn.classList.add("text-gray-400");
                   tab.container.classList.add("hidden");
@@ -194,7 +190,6 @@
           
           if (typeof duration === "number" || /^\d+$/.test(duration)) {
               const totalSeconds = parseInt(duration, 10);
-              // ライブ配信などで0の場合や不正な場合は「LIVE」等にするのもあり
               if (totalSeconds === 0) return "LIVE";
               
               const h = Math.floor(totalSeconds / 3600);
@@ -215,7 +210,6 @@
           return `${minutes || '0'}:${seconds.padStart(2, '0')}`;
       }
 
-      // 引数に source を追加し、データ元に応じて処理を分ける
       function renderVideos(videos, containerElement, source) {
           containerElement.innerHTML = "";
           if (!videos || videos.length === 0) return;
@@ -261,13 +255,18 @@
 
               const channelUrl = channelId ? `/wkt/c/${channelId}` : '#';
 
+              // ライブかどうかでバッジのスタイルとテキストを分ける
+              const isLive = durationText === "LIVE";
+              const badgeClass = isLive ? "bg-red-600 bg-opacity-90" : "bg-black bg-opacity-80";
+              const badgeText = isLive ? "ライブ" : durationText;
+
               const html = `
                 <div class="result-item bg-gray-800 p-4 rounded-lg shadow hover:bg-gray-700 transition duration-200">
                     <a href="/wkt/watch/${id}" class="block relative group">
                         <img loading="lazy" src="${thumbnailUrl}" alt="${title}" class="w-full h-auto rounded aspect-video object-cover">
                         
-                        <span class="absolute bottom-1 right-1 bg-red-600 bg-opacity-90 text-white text-xs px-1.5 py-0.5 rounded font-medium">
-                            ${durationText === "LIVE" ? "ライブ" : durationText}
+                        <span class="absolute bottom-1 right-1 ${badgeClass} text-white text-xs px-1.5 py-0.5 rounded font-medium">
+                            ${badgeText}
                         </span>
 
                         <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition rounded"></div>
