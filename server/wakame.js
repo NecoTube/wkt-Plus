@@ -58,7 +58,8 @@ async function getInvidious(videoId) {
             fps: stream.fps || null
         }));
         
-    if (videoInfo.hlsUrl) streamUrl = `/wkt/live/s/${videoId}`;
+    // ★ライブ配信対応（hlsUrlがあればそれをメインにする）
+    if (videoInfo.hlsUrl) streamUrl = videoInfo.hlsUrl; 
     
     return { stream_url: streamUrl, highstreamUrl, audioUrl, streamUrls };
 }
@@ -80,12 +81,14 @@ async function getSiaTube(videoId) {
                                streams.find(s => s.vcodec !== 'none' && s.acodec !== 'none');
         const streamUrl = combinedStream?.url || '';
 
+        // ★ ライブ配信判定＆画質除外回避
         const isLive = streams.some(s => s.url && (s.url.includes('manifest.googlevideo.com') || s.url.includes('.m3u8')));
         const videoStreams = streams.filter(s => {
             if (!s.url || s.vcodec === 'none') return false;
-            if (isLive) return true; // ライブの時は除外せずすべて残す！
-            return s.acodec === 'none'; // 通常動画の時は音声なし(映像のみ)に絞る
+            if (isLive) return true; // ライブなら除外しない！
+            return s.acodec === 'none'; // 通常なら映像のみ
         });
+
         const streamUrls = videoStreams.map(s => {
             let res = s.resolution || '';
             if (res.includes('x')) res = res.split('x')[1] + 'p';
@@ -123,11 +126,12 @@ async function getYuZuTube(videoId) {
         const combinedStream = streams.find(s => String(s.format_id) === '18' || String(s.itag) === '18');
         const streamUrl = combinedStream?.url || '';
 
+        // ★ ライブ配信判定＆画質除外回避
         const isLive = streams.some(s => s.url && (s.url.includes('manifest.googlevideo.com') || s.url.includes('.m3u8')));
         const videoStreams = streams.filter(s => {
             if (!s.url || s.resolution === 'audio only') return false;
-            if (isLive) return true; // ライブの時は除外せずすべて残す！
-            return !['18', '22'].includes(String(s.format_id || s.itag));
+            if (isLive) return true; // ライブなら除外しない！
+            return !['18', '22'].includes(String(s.format_id || s.itag)); // 通常なら統合ストリームを除外
         });
         
         const streamUrls = videoStreams.map(s => {
@@ -153,7 +157,7 @@ async function getYuZuTube(videoId) {
 }
 
 // =========================================
-// ④ XeroxYT-NT API からの取得 (新規追加)
+// ④ XeroxYT-NT API からの取得
 // =========================================
 async function getXeroxApis() {
     try {
@@ -180,7 +184,7 @@ async function getXeroxNT(videoId) {
                     url: f.url,
                     resolution: f.quality || (f.height ? f.height + 'p' : ''),
                     container: f.container || 'mp4',
-                    fps: null // Xerox APIにfpsデータが無いためnull
+                    fps: null
                 }));
 
                 return {
@@ -199,7 +203,7 @@ async function getXeroxNT(videoId) {
 }
 
 // =========================================
-// ⑤ MIN-Tube2 API からの取得 (新規追加)
+// ⑤ MIN-Tube2 API からの取得
 // =========================================
 async function getMinTube2Apis() {
     try {
@@ -221,7 +225,6 @@ async function getMinTube2(videoId) {
             const data = response.data;
             
             if (data && data.stream_url) {
-                // UIの画質選択プルダウンを壊さないように、配列を自作してあげる
                 const streamUrls = [];
                 if (data.stream_url) {
                     streamUrls.push({ url: data.stream_url, resolution: '通常画質', container: 'mp4', fps: null });
@@ -246,25 +249,29 @@ async function getMinTube2(videoId) {
 }
 
 // =========================================
-// ⑥ Wista Stream API からの取得 (新規追加)
+// ⑥ Wista Stream API からの取得
 // =========================================
 async function getWistaStream(videoId) {
     try {
         const response = await axios.get(`https://simple-yt-stream.onrender.com/api/video/${videoId}`, { timeout: MAX_TIME });
         const streams = response.data.streams || [];
         
-        // 音声ストリームの抽出（format_id: 251(WebM) または 140(m4a)）
         const audioStream = streams.find(s => String(s.format_id) === '251') || 
                             streams.find(s => String(s.format_id) === '140') ||
                             streams.find(s => s.quality === 'medium' || s.quality === 'low');
         const audioUrl = audioStream?.url || '';
 
-        // 映像+音声の統合ストリーム（format_id: 18）
         const combinedStream = streams.find(s => String(s.format_id) === '18');
         const streamUrl = combinedStream?.url || '';
 
-        // 画質選択用の映像ストリームを抽出（qualityに'p'が含まれるもの）
-        const videoStreams = streams.filter(s => s.quality && s.quality.includes('p'));
+        // ★ ライブ配信判定＆画質除外回避
+        const isLive = streams.some(s => s.url && (s.url.includes('manifest.googlevideo.com') || s.url.includes('.m3u8')));
+        const videoStreams = streams.filter(s => {
+            if (!s.url || !s.quality) return false;
+            if (isLive) return true; // ライブなら除外しない！
+            // 通常なら映像のみ (統合ストリーム18等を除外) 
+            return s.quality.includes('p') && String(s.format_id) !== '18' && String(s.format_id) !== '22';
+        });
         
         const streamUrls = videoStreams.map(s => {
             return {
@@ -286,23 +293,69 @@ async function getWistaStream(videoId) {
     }
 }
 
+
 // =========================================
-// 🌟 最終振り分け処理
+// 🌟 最終振り分け処理 (全API共通マニフェスト対応)
 // =========================================
 async function getYouTube(videoId, apiType = 'invidious') {
+    let result;
     if (apiType === 'siawaseok') {
-        return await getSiaTube(videoId);
+        result = await getSiaTube(videoId);
     } else if (apiType === 'yudlp') {
-        return await getYuZuTube(videoId);
+        result = await getYuZuTube(videoId);
     } else if (apiType === 'xeroxyt-nt-apiv1') {
-        return await getXeroxNT(videoId);
+        result = await getXeroxNT(videoId);
     } else if (apiType === 'min-tube2-api') {
-        return await getMinTube2(videoId);
-    } else if (apiType === 'simple-yt-stream') { // ★ ここに追加
-        return await getWistaStream(videoId);
+        result = await getMinTube2(videoId);
+    } else if (apiType === 'simple-yt-stream') {
+        result = await getWistaStream(videoId);
     } else {
-        return await getInvidious(videoId);
+        result = await getInvidious(videoId);
     }
+
+    // 全API共通: ライブ配信（マニフェスト/HLS）かどうかの判定
+    const isLive = result.stream_url && (result.stream_url.includes('manifest.googlevideo.com') || result.stream_url.includes('.m3u8'));
+
+    if (isLive) {
+        result.audioUrl = null; // ライブ時は別音声を無効化して本体の音声に任せる
+
+        if (result.streamUrls && result.streamUrls.length > 0) {
+            const newStreamUrls = [];
+            const seenResolutions = new Set(); 
+
+            result.streamUrls.forEach(stream => {
+                let resName = stream.resolution || 'Auto';
+                // カッコやfpsなどのゴミテキストを綺麗に消す
+                resName = resName.replace(/ \(.+\)/g, '').trim();
+
+                if (!seenResolutions.has(resName)) {
+                    seenResolutions.add(resName);
+                    newStreamUrls.push({
+                        url: stream.url,
+                        resolution: resName, 
+                        container: 'm3u8',
+                        fps: stream.fps
+                    });
+                }
+            });
+            result.streamUrls = newStreamUrls; 
+        } else {
+            // リストが空だった場合の保険
+            result.streamUrls = [{
+                url: result.stream_url,
+                resolution: 'Auto',
+                container: 'm3u8',
+                fps: null
+            }];
+        }
+    } else {
+        // 通常動画で、もし音声URLにマニフェストが紛れ込んでいたら消す
+        if (result.audioUrl && (result.audioUrl.includes('manifest.googlevideo.com') || result.audioUrl.includes('.m3u8'))) {
+            result.audioUrl = null;
+        }
+    }
+
+    return result;
 }
 
 module.exports = { ggvideo, getapis, getYouTube };
