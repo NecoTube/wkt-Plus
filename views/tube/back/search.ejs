@@ -34,7 +34,7 @@
                 <% res.results.forEach(video => { %>
                   <% if (video.type && video.type.endsWith("Video")) { %>
                     <div class="result-item w-auto bg-gray-800 p-4 rounded">
-                        <a href="/wkt/watch/<%= video.id %>" class="thumbnail">
+                        <a href="/wkt/watch/<%= video.id %>" class="thumbnail" target="_top">
                           <img src="/wkt/back/vi/<%= video.id %>/mqdefault.jpg" alt="thumbnail" class="w-full h-auto rounded">
                         </a>
                         <div class="mt-2">
