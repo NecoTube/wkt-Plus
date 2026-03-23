@@ -2,14 +2,12 @@ const express = require("express");
 const router = express.Router();
 const serverYt = require("../../server/youtube.js");
 const wakamess = require("../../server/wakame.js");
-const axios = require("axios"); // ★ 追加: これがないと負荷チェック時の axios.get でエラーになります
+const axios = require("axios");
 
 const user_agent = process.env.USER_AGENT || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36";
 
 // サーバーリスト
 const serverUrls = ['invidious', 'siawaseok', 'yudlp', 'ytdlpinstance-vercel', 'min-tube2-api', 'xeroxyt-nt-apiv1', 'simple-yt-stream'];
-
-// ... (上部の設定などはそのまま) ...
 
 router.get('/:id', async (req, res) => {
     const videoId = req.params.id;
@@ -29,7 +27,7 @@ router.get('/:id', async (req, res) => {
     let fallbackMessage = null; // EJSに渡すアラートメッセージ
 
     try {
-        // ▼▼▼ 追加：キャッシュ状況による負荷チェックと自動フォールバック ▼▼▼
+        // ▼▼▼ キャッシュ状況による負荷チェックと自動フォールバック ▼▼▼
         if (selectedApi === 'siawaseok') {
             try {
                 const cacheRes = await axios.get('https://siawaseok.f5.si/api/cache', { timeout: 3000 });
@@ -56,11 +54,24 @@ router.get('/:id', async (req, res) => {
             } catch (e) {
                 console.error("YuZuTube負荷チェック失敗:", e.message);
             }
+        } else if (selectedApi === 'ytdlpinstance-vercel') {
+            // ★ 追加: KatuoTube の負荷チェック
+            try {
+                const cacheRes = await axios.get('https://ytdlpinstance-vercel.vercel.app/cache', { timeout: 3000 });
+                // JSONのキー（動画ID）の数をカウントして10件を超えているかチェック
+                if (cacheRes.data && Object.keys(cacheRes.data).length > 20) {
+                    apiToUse = 'invidious';
+                    baseUrl = 'invidious';
+                    fallbackMessage = "現在、このサイトに高い負荷がかかっていてサーバーへのリクエストがキャンセルされたため、自動的にInvidious APIを使用しました。";
+                    console.log("KatuoTube制限超過: 20件以上のためInvidiousへフォールバック");
+                }
+            } catch (e) {
+                console.error("KatuoTube負荷チェック失敗:", e.message);
+            }
         }
-        // ▲▲▲ ここまで追加 ▲▲▲
+        // ▲▲▲ ここまで ▲▲▲
 
-        // ★第2引数に、負荷チェック後のAPI(apiToUse)を渡す
-        // （※先ほど修正した wakame.js 側で audioUrls 等がすでに整えられて返ってくるため、そのまま EJS に渡せます）
+        // 第2引数に、負荷チェック後のAPI(apiToUse)を渡す
         const videoData = await wakamess.getYouTube(videoId, apiToUse);
         const Info = await serverYt.infoGet(videoId);
         
@@ -95,7 +106,6 @@ router.get('/:id', async (req, res) => {
             watch_next_feed: watch_next_feed,
         };
         
-        // ★ fallbackMessage をEJSに渡すように追加
         res.render('tube/watch.ejs', { videoData, videoInfo, videoId, baseUrl, fallbackMessage });
         
     } catch (error) {
