@@ -138,6 +138,7 @@ pinned: false
 - 2026/03/07 - Invidious APIに加え、SiaTube API、YuZuTube API、XeroxYT-NT API、MIN-Tube2 APIを追加、トレンドを複数取得し表示するように変更、しあtubeとXeroxYT-NTを追加
 - 2026/03/08 - Wista Stream APIを追加
 - 2026/03/19 - Re: LABO5、YouTube 埋め込み再生ツールを追加
+- 2026/03/23 - 音質を選択できるように改良、KatuoTube APIを追加、サーバーごとにタイムアウト、使用するインスタンスを選択する仕組みを改善
 
 ---
 
