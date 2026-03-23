@@ -4,7 +4,17 @@ let apis = null;
 let xeroxApis = null;
 let minTubeApis = null;
 const MAX_API_WAIT_TIME = 5000; 
-const MAX_TIME = 10000;
+const MAX_TIME = 10000;       // 高速サーバー用 (10秒)
+const MAX_TIME_SLOW = 20000;  // 低速サーバー用 (20秒)
+
+// 配列をランダムにシャッフルする関数
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 
 // =========================================
 // ① Invidious API からの取得
@@ -45,7 +55,6 @@ async function getInvidious(videoId) {
     const audioUrl = audioStreams.find(s => String(s.itag) === '251')?.url || 
                      audioStreams.find(s => s.container === 'm4a')?.url || '';
 
-    // ★ 音声ストリームリストの抽出
     const audioUrls = audioStreams
         .filter(stream => !stream.resolution && (stream.container === 'webm' || stream.container === 'm4a'))
         .map(stream => ({
@@ -85,7 +94,6 @@ async function getSiaTube(videoId) {
                             streams.find(s => s.vcodec === 'none');
         const audioUrl = audioStream?.url || '';
 
-        // ★ 音声ストリームリストの抽出
         const audioUrls = streams
             .filter(s => s.vcodec === 'none' && (s.ext === 'webm' || s.ext === 'm4a'))
             .map(s => ({
@@ -140,7 +148,6 @@ async function getYuZuTube(videoId) {
                             streams.find(s => s.resolution === 'audio only');
         const audioUrl = audioStream?.url || '';
 
-        // ★ 音声ストリームリストの抽出
         const audioUrls = streams
             .filter(s => s.resolution === 'audio only' && (s.ext === 'webm' || s.ext === 'm4a'))
             .map(s => ({
@@ -183,7 +190,60 @@ async function getYuZuTube(videoId) {
 }
 
 // =========================================
-// ④ XeroxYT-NT API からの取得
+// ★ 新規追加: KatuoTube API からの取得
+// =========================================
+async function getKatuoTube(videoId) {
+    try {
+        const response = await axios.get(`https://ytdlpinstance-vercel.vercel.app/stream/${videoId}`, { timeout: MAX_TIME });
+        const streams = Array.isArray(response.data) ? response.data : (response.data.formats || []);
+        
+        const audioStream = streams.find(s => String(s.format_id) === '251' || String(s.itag) === '251') || 
+                            streams.find(s => s.resolution === 'audio only' || s.vcodec === 'none');
+        const audioUrl = audioStream?.url || '';
+
+        const audioUrls = streams
+            .filter(s => (s.resolution === 'audio only' || s.vcodec === 'none') && (s.ext === 'webm' || s.ext === 'm4a'))
+            .map(s => ({
+                url: s.url,
+                name: `${s.ext} (${s.abr || 'auto'}kbps)`,
+                container: s.ext
+            }));
+
+        const combinedStream = streams.find(s => String(s.format_id) === '18' || String(s.itag) === '18');
+        const streamUrl = combinedStream?.url || '';
+
+        const isLive = streams.some(s => s.url && (s.url.includes('manifest') || s.url.includes('.m3u8')));
+        const videoStreams = streams.filter(s => {
+            if (!s.url || s.resolution === 'audio only' || s.vcodec === 'none') return false;
+            if (isLive) return true;
+            return !['18', '22'].includes(String(s.format_id || s.itag));
+        });
+        
+        const streamUrls = videoStreams.map(s => {
+            let res = s.resolution || '';
+            if (res.includes('x')) res = res.split('x')[1] + 'p';
+            return {
+                url: s.url,
+                resolution: res,
+                container: s.ext || 'mp4',
+                fps: s.fps || null
+            };
+        });
+
+        return {
+            stream_url: streamUrl || streamUrls[0]?.url || '',
+            highstreamUrl: streamUrls.find(s => s.resolution === '1080p')?.url || streamUrls[0]?.url || '',
+            audioUrl: audioUrl,
+            audioUrls: audioUrls,
+            streamUrls: streamUrls
+        };
+    } catch (error) {
+        throw new Error("KatuoTubeからの取得に失敗: " + error.message);
+    }
+}
+
+// =========================================
+// ④ XeroxYT-NT API からの取得 (低速・ランダム)
 // =========================================
 async function getXeroxApis() {
     try {
@@ -199,9 +259,12 @@ async function getXeroxNT(videoId) {
     if (!xeroxApis) await getXeroxApis();
     if (!xeroxApis || xeroxApis.length === 0) throw new Error("Xerox-NTのAPIリストがありません");
 
-    for (const instance of xeroxApis) {
+    // リストをシャッフルしてランダムに試す
+    const shuffledApis = shuffleArray([...xeroxApis]);
+
+    for (const instance of shuffledApis) {
         try {
-            const response = await axios.get(`${instance}/stream?id=${videoId}`, { timeout: MAX_TIME });
+            const response = await axios.get(`${instance}/stream?id=${videoId}`, { timeout: MAX_TIME_SLOW }); // 低速なので20秒
             const data = response.data;
             
             if (data && data.streamingUrl) {
@@ -225,13 +288,13 @@ async function getXeroxNT(videoId) {
         } catch (error) {
             console.error(`エラー: ${instance} - ${error.message}`);
         }
-        if (Date.now() - startTime >= MAX_TIME) throw new Error("接続がタイムアウトしました");
+        if (Date.now() - startTime >= MAX_TIME_SLOW) throw new Error("接続がタイムアウトしました");
     }
     throw new Error("Xerox-NTで動画を取得できませんでした");
 }
 
 // =========================================
-// ⑤ MIN-Tube2 API からの取得
+// ⑤ MIN-Tube2 API からの取得 (高速・ランダム)
 // =========================================
 async function getMinTube2Apis() {
     try {
@@ -247,9 +310,12 @@ async function getMinTube2(videoId) {
     if (!minTubeApis) await getMinTube2Apis();
     if (!minTubeApis || minTubeApis.length === 0) throw new Error("MIN-Tube2のAPIリストがありません");
 
-    for (const instance of minTubeApis) {
+    // リストをシャッフルしてランダムに試す
+    const shuffledApis = shuffleArray([...minTubeApis]);
+
+    for (const instance of shuffledApis) {
         try {
-            const response = await axios.get(`${instance}/api/video/${videoId}`, { timeout: MAX_TIME });
+            const response = await axios.get(`${instance}/api/video/${videoId}`, { timeout: MAX_TIME }); // 高速なので10秒
             const data = response.data;
             
             if (data && data.stream_url) {
@@ -276,11 +342,11 @@ async function getMinTube2(videoId) {
 }
 
 // =========================================
-// ⑥ Wista Stream API からの取得
+// ⑥ Wista Stream API からの取得 (低速)
 // =========================================
 async function getWistaStream(videoId) {
     try {
-        const response = await axios.get(`https://simple-yt-stream.onrender.com/api/video/${videoId}`, { timeout: MAX_TIME });
+        const response = await axios.get(`https://simple-yt-stream.onrender.com/api/video/${videoId}`, { timeout: MAX_TIME_SLOW }); // 低速なので20秒
         const streams = response.data.streams || [];
         
         const audioStream = streams.find(s => String(s.format_id) === '251') || 
@@ -327,9 +393,8 @@ async function getWistaStream(videoId) {
     }
 }
 
-
 // =========================================
-// 🌟 最終振り分け処理 (全API共通マニフェスト対応)
+// 🌟 最終振り分け処理
 // =========================================
 async function getYouTube(videoId, apiType = 'invidious') {
     let result;
@@ -337,6 +402,8 @@ async function getYouTube(videoId, apiType = 'invidious') {
         result = await getSiaTube(videoId);
     } else if (apiType === 'yudlp') {
         result = await getYuZuTube(videoId);
+    } else if (apiType === 'ytdlpinstance-vercel') {
+        result = await getKatuoTube(videoId);
     } else if (apiType === 'xeroxyt-nt-apiv1') {
         result = await getXeroxNT(videoId);
     } else if (apiType === 'min-tube2-api') {
@@ -351,7 +418,7 @@ async function getYouTube(videoId, apiType = 'invidious') {
 
     if (isLive) {
         result.audioUrl = null; 
-        result.audioUrls = []; // ライブ時は音質選択も無効化
+        result.audioUrls = []; 
 
         if (result.streamUrls && result.streamUrls.length > 0) {
             const newStreamUrls = [];
