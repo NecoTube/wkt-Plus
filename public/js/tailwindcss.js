@@ -81,3 +81,72 @@ Check your Browserslist config to be sure that your targets are set up correctly
  * Released under the MIT License.
  */
 /*! https://mths.be/cssesc v3.0.0 by @mathias */
+
+
+
+// ==========================================
+// === シークレットモード（about:blank）共通処理 ===
+// ==========================================
+
+const originalWindowOpen = window.open;
+
+function openUrlInAboutBlank(targetUrl, isOriginalTab = false) {
+    const win = originalWindowOpen.call(window, 'about:blank', '_blank');
+
+    if (!win || win.closed || typeof win.closed == 'undefined') {
+        if (typeof showMessage === 'function') {
+            showMessage('⚠️ ポップアップがブロックされました。ブラウザの設定から許可してください。');
+        } else {
+            alert('⚠️ ポップアップがブロックされました。ブラウザの設定から許可してください。');
+        }
+        return null;
+    }
+
+    const iframeHtml = `
+        <!DOCTYPE html>
+        <html lang="ja">
+        <head>
+            <meta charset="UTF-8">
+            <title>about:blank</title>
+            <style>
+                body, html {
+                    margin: 0; padding: 0; width: 100vw; height: 100vh;
+                    overflow: hidden; background-color: #1a202c;
+                }
+                iframe {
+                    width: 100%; height: 100%; border: none;
+                }
+            </style>
+        </head>
+        <body>
+            <iframe src="${targetUrl}" allowfullscreen></iframe>
+        </body>
+        </html>
+    `;
+
+    win.document.open();
+    win.document.write(iframeHtml);
+    win.document.close();
+    
+    if (isOriginalTab) {
+        window.location.replace('https://www.google.com');
+    }
+    return win;
+}
+
+if (window !== window.parent) {
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a');
+        if (link && link.target === '_blank') {
+            e.preventDefault(); 
+            openUrlInAboutBlank(link.href, false);
+        }
+    });
+
+    window.open = function(url, target, features) {
+        if (target === '_blank' || !target) {
+            return openUrlInAboutBlank(url, false);
+        }
+        return originalWindowOpen.call(window, url, target, features);
+    };
+}
