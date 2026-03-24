@@ -267,7 +267,7 @@
         <div class="control-section mb-4">
             <label class="block mb-2">画質選択:
                 <select id="qualitySelect" class="w-full bg-gray-800 text-white p-2 rounded">
-                    <option value="<%= videoData.stream_url %>" data-container="mp4">自動 (統合)</option>
+                    <option value="<%= videoData.stream_url %>" data-container="mp4" data-is-auto="true">自動 (統合)</option>
                     <% videoData.streamUrls.forEach(stream => { %>
                     <option value="<%= stream.url %>" data-resolution="<%= stream.resolution %>" data-container="<%= stream.container %>">
                         <%= stream.resolution %><%= stream.fps ? stream.fps : '' %> (<%= stream.container %>)
@@ -733,16 +733,14 @@ $(document).ready(function() {
     $('#qualitySelect').change(function() {
         const selectedOption = $(this).find(':selected');
         const container = selectedOption.attr('data-container') || 'mp4';
+        const isAuto = selectedOption.attr('data-is-auto') === 'true'; // ★ 判定追加
         const newUrl = selectedOption.val();
         
-        // ★ 処理を始める前に、一旦映像も音声も完全に止める！
         video.pause();
         audio.pause();
         
-        // 再生位置を記憶
         const currentTime = video.currentTime;
 
-        // ★ m3u8の場合は正しいHLS形式としてブラウザに認識させる
         if (container === 'm3u8') {
             videoSrc.type = "application/x-mpegURL";
         } else {
@@ -750,11 +748,13 @@ $(document).ready(function() {
         }
         videoSrc.src = newUrl;
 
-        // ★ マニフェストURLの場合は裏の音声を流さない（動画本体の音声に任せる）
-        if (newUrl.startsWith("https://manifest.googlevideo.com/") || newUrl.includes(".m3u8")) {
+        // ★ 動画が「自動 (統合)」または「m3u8(ライブ等)」なら、裏の音声を無効化
+        // （manifest または .m3u8 が含まれているかで判定）
+        if (isAuto || newUrl.includes("manifest") || newUrl.includes(".m3u8")) {
             audio.src = "";
         } else {
-            audio.src = "<%- videoData.audioUrl || '' %>";
+            // ★ それ以外（映像のみ）なら、選択されている「音質」を裏で鳴らす
+            audio.src = $('#audioSelect').val() || "<%- videoData.audioUrl || '' %>";
         }
 
         $('#controlPanel').removeClass('open');
@@ -762,29 +762,59 @@ $(document).ready(function() {
         
         if (audio.src && audio.src !== window.location.href) {
             audio.load();
-            audio.currentTime = currentTime; // 音声の位置を合わせる
+            audio.currentTime = currentTime;
         }
-        video.currentTime = currentTime; // 映像の位置を合わせる
+        video.currentTime = currentTime; 
 
-        // 読み込みが完了したら自動で再開させる
         video.play().catch(e => console.error(e));
     });
 
-    // ★ 通常画質（初期状態の統合ストリーム）にリセット
+    // ★ 音質変更
+    $('#audioSelect').change(function() {
+        const selectedQuality = $('#qualitySelect').find(':selected');
+        const isAuto = selectedQuality.attr('data-is-auto') === 'true';
+        const currentVideoUrl = selectedQuality.val();
+        const newAudioUrl = $(this).val();
+
+        // 映像が「自動(統合)」や「m3u8」の時は、裏の音声を動かさないので切り替え不要
+        // （manifest または .m3u8 が含まれているかで判定）
+        if (isAuto || currentVideoUrl.includes("manifest") || currentVideoUrl.includes(".m3u8")) {
+            return;
+        }
+
+        const currentTime = video.currentTime;
+        const wasPlaying = !video.paused;
+
+        video.pause();
+        audio.pause();
+
+        audio.src = newAudioUrl;
+        audio.load();
+        audio.currentTime = currentTime;
+
+        if (wasPlaying) {
+            video.play().catch(e => console.error(e));
+        }
+    });
+
+    // ★ 画質をリセットボタン
     $('#qualityReset').click(function() {
-        // ★ 処理を始める前に一旦止める！
         video.pause();
         audio.pause();
 
         const currentTime = video.currentTime;
 
         videoSrc.type = "video/mp4";
-        videoSrc.src = "<%- videoData.stream_url %>";
+        // ★ 自動（統合）に戻す
+        videoSrc.src = "<%- videoData.stream_url %>"; 
         
-        // 統合ストリームに戻すので裏の音声は空にする
+        // 統合なので別音声は空
         audio.src = ""; 
         
         $('#controlPanel').removeClass('open');
+        // セレクトボックスの見た目も一番上の「自動(統合)」に戻す
+        $('#qualitySelect').prop('selectedIndex', 0);
+        
         video.load();
         video.currentTime = currentTime;
         
