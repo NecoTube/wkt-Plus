@@ -55,11 +55,12 @@ async function getInvidious(videoId) {
     const audioUrl = audioStreams.find(s => String(s.itag) === '251')?.url || 
                      audioStreams.find(s => s.container === 'm4a')?.url || '';
 
+    // ★ autokbpsの削除
     const audioUrls = audioStreams
         .filter(stream => !stream.resolution && (stream.container === 'webm' || stream.container === 'm4a'))
         .map(stream => ({
             url: stream.url,
-            name: `${stream.container} (${stream.audioBitrate || 'auto'}kbps)`,
+            name: stream.audioBitrate ? `${stream.container} (${stream.audioBitrate}kbps)` : stream.container,
             container: stream.container
         }));
 
@@ -94,11 +95,12 @@ async function getSiaTube(videoId) {
                             streams.find(s => s.vcodec === 'none');
         const audioUrl = audioStream?.url || '';
 
+        // ★ autokbpsの削除
         const audioUrls = streams
             .filter(s => s.vcodec === 'none' && (s.ext === 'webm' || s.ext === 'm4a'))
             .map(s => ({
                 url: s.url,
-                name: `${s.ext} (${s.abr || 'auto'}kbps)`,
+                name: s.abr ? `${s.ext} (${s.abr}kbps)` : s.ext,
                 container: s.ext
             }));
 
@@ -106,10 +108,10 @@ async function getSiaTube(videoId) {
                                streams.find(s => s.vcodec !== 'none' && s.acodec !== 'none');
         const streamUrl = combinedStream?.url || '';
 
-        const isLive = streams.some(s => s.url && (s.url.includes('manifest') || s.url.includes('.m3u8')));
+        // ★ 動画ストリームの抽出ロジック（m3u8も残す）
         const videoStreams = streams.filter(s => {
             if (!s.url || s.vcodec === 'none') return false;
-            if (isLive) return true;
+            if (s.url.includes('.m3u8') || s.url.includes('manifest')) return true;
             return s.acodec === 'none';
         });
 
@@ -148,21 +150,21 @@ async function getYuZuTube(videoId) {
                             streams.find(s => s.resolution === 'audio only');
         const audioUrl = audioStream?.url || '';
 
+        // ★ autokbpsの削除
         const audioUrls = streams
             .filter(s => s.resolution === 'audio only' && (s.ext === 'webm' || s.ext === 'm4a'))
             .map(s => ({
                 url: s.url,
-                name: `${s.ext} (${s.abr || 'auto'}kbps)`,
+                name: s.abr ? `${s.ext} (${s.abr}kbps)` : s.ext,
                 container: s.ext
             }));
 
         const combinedStream = streams.find(s => String(s.format_id) === '18' || String(s.itag) === '18');
         const streamUrl = combinedStream?.url || '';
 
-        const isLive = streams.some(s => s.url && (s.url.includes('manifest') || s.url.includes('.m3u8')));
         const videoStreams = streams.filter(s => {
-            if (!s.url || s.resolution === 'audio only') return false;
-            if (isLive) return true;
+            if (!s.url || s.resolution === 'audio only' || s.vcodec === 'none') return false;
+            if (s.url.includes('.m3u8') || s.url.includes('manifest')) return true;
             return !['18', '22'].includes(String(s.format_id || s.itag));
         });
         
@@ -190,7 +192,7 @@ async function getYuZuTube(videoId) {
 }
 
 // =========================================
-// ★ 新規追加: KatuoTube API からの取得
+// ★ KatuoTube API からの取得
 // =========================================
 async function getKatuoTube(videoId) {
     try {
@@ -201,21 +203,21 @@ async function getKatuoTube(videoId) {
                             streams.find(s => s.resolution === 'audio only' || s.vcodec === 'none');
         const audioUrl = audioStream?.url || '';
 
+        // ★ autokbpsの削除
         const audioUrls = streams
             .filter(s => (s.resolution === 'audio only' || s.vcodec === 'none') && (s.ext === 'webm' || s.ext === 'm4a'))
             .map(s => ({
                 url: s.url,
-                name: `${s.ext} (${s.abr || 'auto'}kbps)`,
+                name: s.abr ? `${s.ext} (${s.abr}kbps)` : s.ext,
                 container: s.ext
             }));
 
         const combinedStream = streams.find(s => String(s.format_id) === '18' || String(s.itag) === '18');
         const streamUrl = combinedStream?.url || '';
 
-        const isLive = streams.some(s => s.url && (s.url.includes('manifest') || s.url.includes('.m3u8')));
         const videoStreams = streams.filter(s => {
             if (!s.url || s.resolution === 'audio only' || s.vcodec === 'none') return false;
-            if (isLive) return true;
+            if (s.url.includes('.m3u8') || s.url.includes('manifest')) return true;
             return !['18', '22'].includes(String(s.format_id || s.itag));
         });
         
@@ -259,12 +261,11 @@ async function getXeroxNT(videoId) {
     if (!xeroxApis) await getXeroxApis();
     if (!xeroxApis || xeroxApis.length === 0) throw new Error("Xerox-NTのAPIリストがありません");
 
-    // リストをシャッフルしてランダムに試す
     const shuffledApis = shuffleArray([...xeroxApis]);
 
     for (const instance of shuffledApis) {
         try {
-            const response = await axios.get(`${instance}/stream?id=${videoId}`, { timeout: MAX_TIME_SLOW }); // 低速なので20秒
+            const response = await axios.get(`${instance}/stream?id=${videoId}`, { timeout: MAX_TIME_SLOW }); 
             const data = response.data;
             
             if (data && data.streamingUrl) {
@@ -310,12 +311,11 @@ async function getMinTube2(videoId) {
     if (!minTubeApis) await getMinTube2Apis();
     if (!minTubeApis || minTubeApis.length === 0) throw new Error("MIN-Tube2のAPIリストがありません");
 
-    // リストをシャッフルしてランダムに試す
     const shuffledApis = shuffleArray([...minTubeApis]);
 
     for (const instance of shuffledApis) {
         try {
-            const response = await axios.get(`${instance}/api/video/${videoId}`, { timeout: MAX_TIME }); // 高速なので10秒
+            const response = await axios.get(`${instance}/api/video/${videoId}`, { timeout: MAX_TIME }); 
             const data = response.data;
             
             if (data && data.stream_url) {
@@ -346,7 +346,7 @@ async function getMinTube2(videoId) {
 // =========================================
 async function getWistaStream(videoId) {
     try {
-        const response = await axios.get(`https://simple-yt-stream.onrender.com/api/video/${videoId}`, { timeout: MAX_TIME_SLOW }); // 低速なので20秒
+        const response = await axios.get(`https://simple-yt-stream.onrender.com/api/video/${videoId}`, { timeout: MAX_TIME_SLOW });
         const streams = response.data.streams || [];
         
         const audioStream = streams.find(s => String(s.format_id) === '251') || 
@@ -358,17 +358,16 @@ async function getWistaStream(videoId) {
             .filter(s => String(s.format_id) === '251' || String(s.format_id) === '140')
             .map(s => ({
                 url: s.url,
-                name: `${s.ext} (${s.quality})`,
+                name: s.quality ? `${s.ext} (${s.quality})` : s.ext,
                 container: s.ext
             }));
 
         const combinedStream = streams.find(s => String(s.format_id) === '18');
         const streamUrl = combinedStream?.url || '';
 
-        const isLive = streams.some(s => s.url && (s.url.includes('manifest') || s.url.includes('.m3u8')));
         const videoStreams = streams.filter(s => {
             if (!s.url || !s.quality) return false;
-            if (isLive) return true;
+            if (s.url.includes('.m3u8') || s.url.includes('manifest')) return true;
             return s.quality.includes('p') && String(s.format_id) !== '18' && String(s.format_id) !== '22';
         });
         
@@ -414,39 +413,49 @@ async function getYouTube(videoId, apiType = 'invidious') {
         result = await getInvidious(videoId);
     }
 
-    const isLive = result.stream_url && (result.stream_url.includes('manifest') || result.stream_url.includes('.m3u8'));
+    // ★ 動画リストの最終整理 (画質ごとにコンテナとm3u8を正確に判定)
+    if (result.streamUrls && result.streamUrls.length > 0) {
+        const newStreamUrls = [];
+        const seenResolutions = new Set(); 
 
-    if (isLive) {
-        result.audioUrl = null; 
-        result.audioUrls = []; 
+        result.streamUrls.forEach(stream => {
+            let resName = stream.resolution || 'Auto';
+            // カッコやfpsなどのゴミテキストを綺麗に消す
+            resName = resName.replace(/ \(.+\)/g, '').trim();
 
-        if (result.streamUrls && result.streamUrls.length > 0) {
-            const newStreamUrls = [];
-            const seenResolutions = new Set(); 
+            // URLの中身を見て、m3u8ならコンテナを書き換える
+            let containerType = stream.container || 'mp4';
+            if (stream.url && (stream.url.includes('.m3u8') || stream.url.includes('manifest'))) {
+                containerType = 'm3u8';
+            }
 
-            result.streamUrls.forEach(stream => {
-                let resName = stream.resolution || 'Auto';
-                resName = resName.replace(/ \(.+\)/g, '').trim();
+            // 「画質 - コンテナ」の組み合わせで重複を弾く
+            const uniqueKey = `${resName}-${containerType}`;
 
-                if (!seenResolutions.has(resName)) {
-                    seenResolutions.add(resName);
-                    newStreamUrls.push({
-                        url: stream.url,
-                        resolution: resName, 
-                        container: 'm3u8',
-                        fps: stream.fps
-                    });
-                }
-            });
-            result.streamUrls = newStreamUrls; 
-        } else {
-            result.streamUrls = [{ url: result.stream_url, resolution: 'Auto', container: 'm3u8', fps: null }];
+            if (!seenResolutions.has(uniqueKey)) {
+                seenResolutions.add(uniqueKey);
+                newStreamUrls.push({
+                    url: stream.url,
+                    resolution: resName, 
+                    container: containerType,
+                    fps: stream.fps
+                });
+            }
+        });
+        result.streamUrls = newStreamUrls; 
+    } else if (result.stream_url) {
+        // リストが空だった場合の保険
+        let containerType = 'mp4';
+        if (result.stream_url.includes('.m3u8') || result.stream_url.includes('manifest')) {
+            containerType = 'm3u8';
         }
-    } else {
-        if (result.audioUrl && (result.audioUrl.includes('manifest') || result.audioUrl.includes('.m3u8'))) {
-            result.audioUrl = null;
-            result.audioUrls = [];
-        }
+        result.streamUrls = [{ url: result.stream_url, resolution: 'Auto', container: containerType, fps: null }];
+    }
+
+    // 音声URLに manifest や .m3u8 が紛れ込んでいたら消す
+    if (result.audioUrl && (result.audioUrl.includes('manifest') || result.audioUrl.includes('.m3u8'))) {
+        result.audioUrl = null;
+        result.audioUrls = [];
     }
 
     return result;
