@@ -55,14 +55,24 @@ async function getInvidious(videoId) {
     const audioUrl = audioStreams.find(s => String(s.itag) === '251')?.url || 
                      audioStreams.find(s => s.container === 'm4a')?.url || '';
 
-    // ★ autokbpsの削除
+    // ★ audioQuality (AUDIO_QUALITY_MEDIUMなど) を使ってスッキリ表示
     const audioUrls = audioStreams
         .filter(stream => !stream.resolution && (stream.container === 'webm' || stream.container === 'm4a'))
-        .map(stream => ({
-            url: stream.url,
-            name: stream.audioBitrate ? `${stream.container} (${stream.audioBitrate}kbps)` : stream.container,
-            container: stream.container
-        }));
+        .map(stream => {
+            let qualityLabel = '';
+            if (stream.audioQuality) {
+                // "AUDIO_QUALITY_MEDIUM" -> "MEDIUM" のように整形
+                qualityLabel = stream.audioQuality.replace('AUDIO_QUALITY_', '');
+            } else if (stream.audioBitrate) {
+                qualityLabel = `${stream.audioBitrate}kbps`;
+            }
+
+            return {
+                url: stream.url,
+                name: qualityLabel ? `${stream.container} (${qualityLabel})` : stream.container,
+                container: stream.container
+            };
+        });
 
     const streamUrls = audioStreams
         .filter(stream => (stream.container === 'webm' || stream.container === 'mp4') && stream.resolution)
