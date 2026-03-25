@@ -344,9 +344,9 @@ if (localStorage.getItem('secretMode') === null) {
 function updateSecretBtnDisplay() {
     const mode = localStorage.getItem('secretMode');
     if (mode === 'on') {
-        secretModeBtn.innerHTML = '🕶️シークレット <span class="text-green-400 font-bold ml-1 text-sm">(ON)</span>';
+        secretModeBtn.innerHTML = '🤫シークレット <span class="text-green-400 font-bold ml-1 text-sm">(ON)</span>';
     } else {
-        secretModeBtn.innerHTML = '🕶️シークレット <span class="text-gray-500 font-bold ml-1 text-sm">(OFF)</span>';
+        secretModeBtn.innerHTML = '🤫シークレット <span class="text-gray-500 font-bold ml-1 text-sm">(OFF)</span>';
     }
 }
 updateSecretBtnDisplay(); // ロード時に表示を合わせる
