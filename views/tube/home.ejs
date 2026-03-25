@@ -91,9 +91,9 @@
             <a href="/?r=y" class="logo">
                 <img src="https://count.getloli.com/@wkt-plus?name=wkt-plus&theme=original-new&padding=7&offset=0&align=top&scale=0.4&pixelated=1&darkmode=auto">
             </a>
-            <div class="space-x-6">
-                <button id="secretModeBtn" class="hover:text-gray-300">🤫シークレット</button>
-                <button id="openSettings" class="hover:text-gray-300">⚙️再生方法</button>
+            <div class="space-x-6 flex items-center">
+                <button id="secretModeBtn" class="hover:text-gray-300 flex items-center transition-colors">🕶️シークレット</button>
+                <button id="openSettings" class="hover:text-gray-300">⚙️設定</button>
                 <a href="/wkt/trend" class="hover:text-gray-300">📈トレンド</a>
                 <a href="/wkt/cl/history" class="hover:text-gray-300">再生履歴</a>
                 <a href="/wkt/cl/fav" class="hover:text-gray-300">お気に入り</a>
@@ -113,6 +113,7 @@
     </section>
 
     <section class="py-10 px-4 bg-gray-800">
+
         <div class="app-card-container">
             <div class="app-card">
                 <a href="/other">
@@ -143,7 +144,7 @@
                 <p>あなたを助けるかもしれない</p>
             </div>
             <div class="app-card">
-                <a href="https://padlet.com/Toka_Kun_/submission-request/qg3ezd5ljaqQXwNP?section=355081294" target="_blank" rel="noopener noreferrer">
+                <a href="https://padlet.com/Toka_Kun_/submission-request/qg3ezd5ljaqQXwNP?section=355081294">
                 <img src="https://cdn.glitch.global/21c63086-ffc1-4d28-8e9a-e2c12f51b431/IMG_2944.png">
                 </a>
                 <h3>お問い合わせ</h3>
@@ -190,20 +191,42 @@
     </footer>
 
 <script>
+// ==========================================
+// 検索ボックスの処理
+// ==========================================
 document.getElementById("searchForm").addEventListener("submit", function(event) {
     event.preventDefault();
     const query = document.getElementById("searchbox").value.trim();
     const ytRegex = /(?:https?:\/\/)?(?:www\.)?youtu(?:\.be\/|be\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([\w\-]+)/;
     const match = query.match(ytRegex);
+    
+    let targetUrl = '';
     if (match) {
         const videoId = match[1];
         showMessage(`YouTubeのURLとして処理されました☑️`);
-        window.location.href = `/wkt/watch/${videoId}`;
+        targetUrl = `/wkt/watch/${videoId}`;
     } else {
-        this.submit();
+        // 通常の検索遷移先を生成
+        targetUrl = `/wkt/s?q=${encodeURIComponent(query)}`;
+    }
+
+    // シークレットON かつ 通常のタブ（about:blankの中ではない）なら自動クローキング発動
+    if (window === window.parent && localStorage.getItem('secretMode') === 'on') {
+        const fullUrl = new URL(targetUrl, window.location.origin).href;
+        if (typeof openUrlInAboutBlank === 'function') {
+            openUrlInAboutBlank(fullUrl, true); // 遷移先をabout:blankで開き、元タブを隠す
+        } else {
+            window.location.href = targetUrl;
+        }
+    } else {
+        // 通常遷移
+        window.location.href = targetUrl;
     }
 });
 
+// ==========================================
+// 初期ロード時のメッセージ等
+// ==========================================
 window.addEventListener("load", function() {
     const hometut = localStorage.getItem('homec');
     if (!hometut) {
@@ -277,35 +300,98 @@ function hideMessage(elem) {
     setTimeout(() => elem.remove(), 300);
 }
   
+// ==========================================
+// 設定パネル関連
+// ==========================================
 document.getElementById('openSettings').addEventListener('click', () => {
-      document.getElementById('settingsPanel').classList.remove('-translate-y-full');
-    });
+    document.getElementById('settingsPanel').classList.remove('-translate-y-full');
+});
     
-    document.getElementById('closeSettings').addEventListener('click', () => {
-      document.getElementById('settingsPanel').classList.add('-translate-y-full');
-    });
+document.getElementById('closeSettings').addEventListener('click', () => {
+    document.getElementById('settingsPanel').classList.add('-translate-y-full');
+});
     
-    document.getElementById('saveButton').addEventListener('click', () => {
-      const mode = document.querySelector('input[name=playbackMode]:checked').value;
-      document.cookie = `playbackMode=${mode}; path=/; max-age=31536000`;
-      document.getElementById('settingsPanel').classList.add('-translate-y-full');
-      showMessage(`再生方法を${mode}に変更しました☑️`);
-    });
+document.getElementById('saveButton').addEventListener('click', () => {
+    const mode = document.querySelector('input[name=playbackMode]:checked').value;
+    document.cookie = `playbackMode=${mode}; path=/; max-age=31536000`;
+    document.getElementById('settingsPanel').classList.add('-translate-y-full');
+    showMessage(`再生方法を${mode}に変更しました☑️`);
+});
     
-    window.addEventListener('DOMContentLoaded', () => {
-      const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
+window.addEventListener('DOMContentLoaded', () => {
+    const cookies = document.cookie.split('; ').reduce((acc, cookie) => {
         const [key, value] = cookie.split('=');
         acc[key] = value;
         return acc;
-      }, {});
-      const playbackMode = cookies.playbackMode || 'normal';
-      document.querySelector(`input[value="${playbackMode}"]`).checked = true;
-    });
+    }, {});
+    const playbackMode = cookies.playbackMode || 'normal';
+    document.querySelector(`input[value="${playbackMode}"]`).checked = true;
+});
 
-    // 【home.ejs側の処理】ヘッダーのボタンが押されたとき
-    document.getElementById('secretModeBtn').addEventListener('click', () => {
-        openUrlInAboutBlank(window.location.href, true);
+
+// ==========================================
+// シークレットモード（ON/OFF機能 & 自動発動）
+// ==========================================
+
+const secretModeBtn = document.getElementById('secretModeBtn');
+
+// デフォルト状態を「オン」にする
+if (localStorage.getItem('secretMode') === null) {
+    localStorage.setItem('secretMode', 'on');
+}
+
+// ボタンのテキストと色を更新する関数
+function updateSecretBtnDisplay() {
+    const mode = localStorage.getItem('secretMode');
+    if (mode === 'on') {
+        secretModeBtn.innerHTML = '🕶️シークレット <span class="text-green-400 font-bold ml-1 text-sm">(ON)</span>';
+    } else {
+        secretModeBtn.innerHTML = '🕶️シークレット <span class="text-gray-500 font-bold ml-1 text-sm">(OFF)</span>';
+    }
+}
+updateSecretBtnDisplay(); // ロード時に表示を合わせる
+
+// ボタンを押した時の処理（ON/OFFの切り替え）
+secretModeBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const currentMode = localStorage.getItem('secretMode');
+    
+    if (currentMode === 'on') {
+        // オフにしようとした時の警告
+        if (confirm('シークレットモードをオフにすると履歴が残ってしまいますが、よろしいですか？')) {
+            localStorage.setItem('secretMode', 'off');
+            updateSecretBtnDisplay();
+            showMessage('シークレットモードをOFFにしました。');
+        }
+    } else {
+        // オンにする
+        localStorage.setItem('secretMode', 'on');
+        updateSecretBtnDisplay();
+        showMessage('シークレットモードをONにしました。');
+    }
+});
+
+// 【自動クローキングの発動】
+// 通常のタブ（about:blankではない場所）にいる場合のみ、リンクのクリックを監視する
+if (window === window.parent) {
+    document.addEventListener('click', function(e) {
+        const link = e.target.closest('a');
+        
+        // リンクが存在し、設定用のリンク(#)やJavaScript実行ではない場合
+        if (link && link.href && !link.getAttribute('href').startsWith('#') && !link.href.startsWith('javascript:')) {
+            
+            // シークレットモードがONなら、遷移をキャンセルしてabout:blankで開き直す
+            if (localStorage.getItem('secretMode') === 'on') {
+                e.preventDefault();
+                if (typeof openUrlInAboutBlank === 'function') {
+                    openUrlInAboutBlank(link.href, true); // true = 元タブをGoogleへ
+                } else {
+                    window.location.href = link.href; // 万が一関数が読み込めていない時の保険
+                }
+            }
+        }
     });
+}
 
 </script>
 </body>
