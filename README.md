@@ -11,6 +11,9 @@ pinned: false
 
 もう開発が終了したわかめtubeに [@toka-kun](https://github.com/toka-kun) が改良を加えているものです。大幅に強化しています。
 
+- わかめtubeのレポジトリは[こちら](https://github.com/wakame02/wkt)
+- わかめtube Plusのレポジトリは[こちら](https://github.com/toka-kun/wkt-Plus)
+
 ## 特徴
 
 - 動画再生の安定化
