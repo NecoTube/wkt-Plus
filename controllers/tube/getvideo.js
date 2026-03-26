@@ -89,23 +89,29 @@ router.get('/:id', async (req, res) => {
                 expanded.push(item);
             }
         }
-        watch_next_feed = expanded;
+        // LockupView（YouTube新形式）を CompactVideo 互換の形式に変換する
+        watch_next_feed = watch_next_feed.map(item => {
+            if (!item || !item.type) return null;
+            if (item.type !== 'LockupView') return item;
+            if (item.content_type !== 'VIDEO') return null;
 
-        // デバッグ: watch_next_feed 先頭アイテムの詳細構造を確認
-        console.log(`[DEBUG] videoId=${videoId} watch_next_feed count=${watch_next_feed.length}`);
-        if (watch_next_feed.length > 0) {
-            const first = watch_next_feed[0];
-            console.log('[DEBUG] first item type:', first?.type);
-            console.log('[DEBUG] first item content_id:', first?.content_id);
-            console.log('[DEBUG] first item content_type:', first?.content_type);
-            console.log('[DEBUG] first item metadata.title:', first?.metadata?.title?.text);
-            const rows = first?.metadata?.metadata?.metadata_rows || [];
-            rows.forEach((row, ri) => {
-                const parts = (row.metadata_parts || []).map(p => p?.text?.text).join(' / ');
-                console.log(`[DEBUG]   metadata_row[${ri}]:`, parts);
-            });
-            console.log('[DEBUG] first item renderer_context:', JSON.stringify(first?.renderer_context));
-        }
+            const rows = item.metadata?.metadata?.metadata_rows || [];
+            const channelName = rows[0]?.metadata_parts?.[0]?.text?.text || '';
+            const viewCountText = rows[1]?.metadata_parts?.[0]?.text?.text || '';
+            const videoId = item.content_id
+                || item.renderer_context?.command_context?.on_tap?.payload?.videoId
+                || null;
+
+            if (!videoId) return null;
+
+            return {
+                type: 'CompactVideo',
+                id: videoId,
+                title: { text: item.metadata?.title?.text || '' },
+                author: { id: '', name: channelName, thumbnails: [] },
+                short_view_count: { text: viewCountText }
+            };
+        }).filter(Boolean);
 
         const videoInfo = {
             title: Info.primary_info.title.text || "",
