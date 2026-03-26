@@ -75,43 +75,7 @@ router.get('/:id', async (req, res) => {
         const videoData = await wakamess.getYouTube(videoId, apiToUse);
         const Info = await serverYt.infoGet(videoId);
         
-        let watch_next_feed = Info.watch_next_feed || [];
-
-        // CompactAutoplay は内部に動画リストを持つラッパーなので展開する
-        const expanded = [];
-        for (const item of watch_next_feed) {
-            if (!item || !item.type) continue;
-            if (item.type === 'CompactAutoplay' && Array.isArray(item.videos) && item.videos.length > 0) {
-                for (const inner of item.videos) {
-                    if (inner && inner.type) expanded.push(inner);
-                }
-            } else {
-                expanded.push(item);
-            }
-        }
-        // LockupView（YouTube新形式）を CompactVideo 互換の形式に変換する
-        watch_next_feed = watch_next_feed.map(item => {
-            if (!item || !item.type) return null;
-            if (item.type !== 'LockupView') return item;
-            if (item.content_type !== 'VIDEO') return null;
-
-            const rows = item.metadata?.metadata?.metadata_rows || [];
-            const channelName = rows[0]?.metadata_parts?.[0]?.text?.text || '';
-            const viewCountText = rows[1]?.metadata_parts?.[0]?.text?.text || '';
-            const videoId = item.content_id
-                || item.renderer_context?.command_context?.on_tap?.payload?.videoId
-                || null;
-
-            if (!videoId) return null;
-
-            return {
-                type: 'CompactVideo',
-                id: videoId,
-                title: { text: item.metadata?.title?.text || '' },
-                author: { id: '', name: channelName, thumbnails: [] },
-                short_view_count: { text: viewCountText }
-            };
-        }).filter(Boolean);
+        const watch_next_feed = serverYt.normalizeWatchNextFeed(Info.watch_next_feed);
 
         const videoInfo = {
             title: Info.primary_info.title.text || "",
