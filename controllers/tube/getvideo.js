@@ -76,22 +76,19 @@ router.get('/:id', async (req, res) => {
         const Info = await serverYt.infoGet(videoId);
         
         let watch_next_feed = Info.watch_next_feed || [];
-        if (!watch_next_feed || watch_next_feed.length === 0) {
-            try {
-                const invData = await wakamess.ggvideo(videoId);
-                if (invData && invData.recommendedVideos) {
-                    watch_next_feed = invData.recommendedVideos.map(vid => ({
-                        type: "Video",
-                        id: vid.videoId,
-                        title: { text: vid.title },
-                        author: { id: vid.authorId, name: vid.author, thumbnails: [] },
-                        short_view_count: { text: vid.viewCountText || '不明' }
-                    }));
+        // CompactAutoplay は内部に動画リストを持つラッパーなので展開する
+        const expanded = [];
+        for (const item of watch_next_feed) {
+            if (!item || !item.type) continue;
+            if (item.type === 'CompactAutoplay' && Array.isArray(item.videos) && item.videos.length > 0) {
+                for (const inner of item.videos) {
+                    if (inner && inner.type) expanded.push(inner);
                 }
-            } catch (e) {
-                console.error("関連動画フォールバック失敗:", e.message);
+            } else {
+                expanded.push(item);
             }
         }
+        watch_next_feed = expanded;
 
         const videoInfo = {
             title: Info.primary_info.title.text || "",
