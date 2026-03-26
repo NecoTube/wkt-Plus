@@ -91,6 +91,9 @@ router.get('/:id', async (req, res) => {
         }
         watch_next_feed = expanded;
 
+        // デバッグ: watch_next_feed の中身を確認
+        console.log(`[DEBUG] videoId=${videoId} watch_next_feed count=${watch_next_feed.length}`);
+        watch_next_feed.forEach((v, i) => console.log(`  [${i}] type=${v?.type} id=${v?.id}`));
 
         const videoInfo = {
             title: Info.primary_info.title.text || "",
