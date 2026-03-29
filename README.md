@@ -14,6 +14,10 @@ pinned: false
 - わかめtubeのレポジトリは[こちら](https://github.com/wakame02/wkt)
 - わかめtube Plusのレポジトリは[こちら](https://github.com/toka-kun/wkt-Plus)
 
+## Unforkのお知らせ
+
+2025/03/26にUnfork、つまり本家わかめtubeとの切り離しを行いました。2025/03/26日以前にこのレポジトリをforkした人は、**[Sync fork]** → **[Discard 〇〇 Commits]** を押して更新して下さい。
+
 ## 特徴
 
 - 動画再生の安定化
