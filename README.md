@@ -189,6 +189,8 @@ pinned: false
 - [@woolisbest-4520](https://github.com/woolisbest-4520)
   - Wista Stream API
   - Educationパラメーター
+- [@Hikari_5544-1](https://gitlab.com/Hikari_5544-1) (GitLab)
+  - ゲーム
 
 ---
 
